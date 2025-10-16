@@ -2,7 +2,7 @@ This folder contains files to test my deduplication.py script
 
 *Files*<br>
 - test_sam_input.sam
-    - contains test reads, formatted like a SAM file but simplified for readability and quick testing
+    - contains test reads, formatted like a SAM file but simplified for readability and quick testing (SORTED)
 - test_sam_output.sam
     - expected output file generated from input
     - duplicates should be removed and the original records kept
