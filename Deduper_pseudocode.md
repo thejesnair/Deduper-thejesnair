@@ -38,7 +38,7 @@ PCR is necessary for amplifying fragments when sequencing libraries, however, th
     - different soft clipping -> DUPE<br>
     code will account for this b/c it checks strandedness, UMI, and adj 5' position
 3. same strand, same 5' position, different UMI --> BOTH KEPT
-    - these are different records b/c of the different UMI. code will accoutn for this
+    - these are different records b/c of the different UMI. code will account for this
 4. different strand, same position and UMI --> BOTH KEPT
     - code accounts for this
 5. invalid UMI
