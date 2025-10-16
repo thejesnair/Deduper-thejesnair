@@ -32,6 +32,13 @@ PCR is necessary for amplifying fragments when sequencing libraries, however, th
 
 **Cases**
 
+In order to be consider a duplicate:
+- same chromosome (RNAME)
+- same strand orientation (+/-)
+- same adjusted 5' position (after correcting for soft clipping)
+- same UMI
+
+
 1. No duplicate
     - not a special case, will be kept
 2. same strand (both + or -), same UMI<BR>
@@ -45,7 +52,6 @@ PCR is necessary for amplifying fragments when sequencing libraries, however, th
     - if umi not in original file, record is discarded
 6. read unmapped
     - discarded
-
 
 
 *Input files:*
@@ -184,7 +190,7 @@ fxn read SAM record(input sam, umi list, output sam):
         if umi not in known umi list:
             continue
     #create record, THIS IS WHERE WE CHECK FOR DUPES
-        key = record_key(RNAME, flag, strand, adjusted_5prime, UMI) #will filter out dupes b/c utilizing ADJUSTED 5' position and umi as well
+        key = record_key(RNAME, flag, pos, cigar, UMI) #will filter out dupes b/c utilizing ADJUSTED 5' position and umi as well
         if key in seen_records:
             continue #drop dupe
         else:
