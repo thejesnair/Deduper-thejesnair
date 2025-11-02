@@ -4,7 +4,6 @@
 # C1_SE_uniqAlign.sam
 
 import argparse
-import gzip
 import re
 from collections import Counter
 
