@@ -172,9 +172,9 @@ def dedup(in_file, umi_file, out_file):
 
     return header_count, wrong_umi_count, unique_reads_count, removed_dupes_count, reads_per_chrom 
 
-
+# sort reads per chr for output summary
 def chrom_sort_key(chrom):
-    """ sorting reads per chrom so chr 1-23, X, Y, MT, and scaffolds"""
+    """ sorting reads so chr 1-19, X, Y, MT, and scaffolds"""
     if chrom.isdigit():
         return int(chrom)
     if chrom == "X":
