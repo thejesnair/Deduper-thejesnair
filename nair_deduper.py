@@ -175,15 +175,16 @@ def dedup(in_file, umi_file, out_file):
 
 
 def chrom_sort_key(chrom):
+    """ sorting reads per chrom so chr 1-23, X, Y, MT, and scaffolds"""
     if chrom.isdigit():
         return int(chrom)
     if chrom == "X":
-        return 23
+        return 20   # Mus musculus have 19 autuosomal chr, '20' would be X
     if chrom == "Y":
-        return 24
+        return 21
     if chrom == "MT":
-        return 25
-    return 26  # scaffolds go last
+        return 22
+    return 23  # scaffolds go last
 
 if __name__ == "__main__":
     # print summary for qualtrics submission
