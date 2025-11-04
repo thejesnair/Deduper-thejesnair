@@ -17,4 +17,3 @@ This folder contains files to test my deduplication.py script
 4. SAME chr (site), SAME strand (+ or -), DIFF UMI (not duplicate, keep both)
 5. SAME UMI, SAME chr, DIFF strand (not duplicate, keep both)
 6. Invalid UMI (not in known list) (discard)
-7. Unmapped (flag 4) (discard)
