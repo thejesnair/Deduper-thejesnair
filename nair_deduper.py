@@ -18,7 +18,7 @@ def get_args():
     path to UMI list needed for removal of PCR duplicates.'''
     parser = argparse.ArgumentParser(description=
                                      "Program to deduplicate PCR duplicates from UNIQUELY MAPPED and SORTED SAM file")
-    parser.add_argument("-f", "--file", help="uniquely sorted SAM file, absolute path", type=str, required=True)
+    parser.add_argument("-f", "--file", help="uniquely mapped, sorted SAM file, absolute path", type=str, required=True)
     parser.add_argument("-o", "--outfile", help="deduped SAM file, absolute path", type=str, required=True)
     parser.add_argument("-u", "--umi", help="umi list, absolute path", type=str, required=True)
 
@@ -91,8 +91,7 @@ def assign_strand(flag) -> bool:
 # calculate adjusted 5' position
 def adj_5prime(pos, cigar, flag):
     """ takes in flag, cigar string, and flag
-    returns adjusted 5' position
-    """
+    returns adjusted 5' position """
     S_left, S_right = soft_clipping(split_cigar(cigar))
     if assign_strand(flag) is False:
         return pos - S_left
