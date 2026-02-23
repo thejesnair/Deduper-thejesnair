@@ -18,9 +18,9 @@ def get_args():
     path to UMI list needed for removal of PCR duplicates.'''
     parser = argparse.ArgumentParser(description=
                                      "Program to deduplicate PCR duplicates from UNIQUELY MAPPED and SORTED SAM file")
-    parser.add_argument("-f", "--file", help="uniquely mapped, sorted SAM file, absolute path", type=str, required=True)
-    parser.add_argument("-o", "--outfile", help="deduped SAM file, absolute path", type=str, required=True)
-    parser.add_argument("-u", "--umi", help="umi list, absolute path", type=str, required=True)
+    parser.add_argument("-f", "--file", help="uniquely mapped, sorted SAM file path", type=str, required=True)
+    parser.add_argument("-o", "--outfile", help="deduped SAM file path", type=str, required=True)
+    parser.add_argument("-u", "--umi", help="umi list path", type=str, required=True)
 
     return parser.parse_args()
 
@@ -37,12 +37,12 @@ REF_OPS = {'M', 'D', 'N', '=', 'X'} # operations that are ref consuming
 
 
 # check known umi
-def known_umi(umi, umi_set) -> bool:
+def known_umi(umi: str, umi_set: set) -> bool:
     """ check if umi is in set of known umis, return T/F """
     return umi in umi_set
 
 # extract key, create record (qname, umi, cigar)
-def parse_SAM_line(line:str) -> list:
+def parse_SAM_line(line:str) -> tuple | None:   # simple type annotation for readability
     """ Takes in SAM line string
     Returns tuple of QNAME, UMI, strand (flag 16), rname, pos, cigar string or None for header """
 #for line in sam_in:
@@ -58,7 +58,7 @@ def parse_SAM_line(line:str) -> list:
     return qname, umi, flag, rname, pos, cigar_string
 
 # get int, op pairs from cigar string
-def split_cigar(cigar) -> list[tuple[int, str]]:
+def split_cigar(cigar:str) -> list[tuple[int, str]]:
     """ return n, op for cigar string 
     ex: "3S20M" -> [(3, 'S'), (20, 'M')] """
     return [(int(n), op) for n, op in CIGAR_REGEX.findall(cigar)]
@@ -76,20 +76,19 @@ def soft_clipping(cigar_ops) -> tuple[int, int]:
     [(30, 'M'), (4, 'S')] -> (0, 4) """
     S_left = 0
     S_right = 0
-    for (n, op) in cigar_ops:
-        if cigar_ops[0][1] == 'S': #where left hand soft clipping
-            S_left = cigar_ops[0][0] #n
-        if cigar_ops[-1][1] == 'S':
-            S_right = cigar_ops[-1][0] #n
+    if cigar_ops[0][1] == 'S': #where left hand soft clipping
+        S_left = cigar_ops[0][0] #n
+    if cigar_ops[-1][1] == 'S':
+        S_right = cigar_ops[-1][0] #n
     return S_left, S_right
 
 # determine strand
-def assign_strand(flag) -> bool:
+def assign_strand(flag:int) -> bool:
     """ return +/- for forward or reverse strand """
     return (flag & 16) == 16
 
 # calculate adjusted 5' position
-def adj_5prime(pos, cigar, flag):
+def adj_5prime(pos:int, cigar:str, flag:int) -> int:
     """ takes in flag, cigar string, and flag
     returns adjusted 5' position """
     S_left, S_right = soft_clipping(split_cigar(cigar))
@@ -100,7 +99,7 @@ def adj_5prime(pos, cigar, flag):
         return pos + ref_len - 1 + S_right
     
 # create a key to match duplicates
-def record_key(rname, flag, pos, cigar, umi):
+def record_key(rname, flag, pos, cigar, umi) -> tuple:
     """ creates a key of each sam record
     if keys are exact matches--> duplicate
     if one parameter differs then both records are kept """
@@ -109,7 +108,7 @@ def record_key(rname, flag, pos, cigar, umi):
     return (rname, strand_dir, adj_5pos, umi) # error here earlier, don't include cigar bc reads can have diff cigars
 
 # MAIN FXN
-def dedup(in_file, umi_file, out_file):
+def dedup(in_file, umi_file, out_file) -> tuple:
     """ uses helper fxns to parse through sam, create known UMI set
     record key of reads, ignore duplicates, write sam out file """
     # create UMI set
@@ -139,7 +138,7 @@ def dedup(in_file, umi_file, out_file):
                 break
 
     # process reads and PCR dupes
-        def compare_reads(line):
+        def compare_reads(line) -> None:
             nonlocal current_rname, wrong_umi_count, unique_reads_count, removed_dupes_count
             # nonlocal to access w/i nested fxn
             record = parse_SAM_line(line)
@@ -151,7 +150,7 @@ def dedup(in_file, umi_file, out_file):
                 seen_records.clear() # resets memory
             if not known_umi(umi, umi_set):
                 wrong_umi_count += 1
-                return
+                return      # return None
             key = record_key(rname, flag, pos, cigar_string, umi)
             if key in seen_records:
                 removed_dupes_count += 1
@@ -172,17 +171,31 @@ def dedup(in_file, umi_file, out_file):
     return header_count, wrong_umi_count, unique_reads_count, removed_dupes_count, reads_per_chrom 
 
 # sort reads per chr for output summary
-def chrom_sort_key(chrom):
-    """ sorting reads so chr 1-19, X, Y, MT, and scaffolds"""
-    if chrom.isdigit():
-        return int(chrom)
-    if chrom == "X":
-        return 20   # Mus musculus have 19 autuosomal chr, '20' would be X
-    if chrom == "Y":
-        return 21
-    if chrom == "MT":
-        return 22
-    return 23  # scaffolds go last
+def chrom_sort_key(chrom) -> tuple:
+    """ Generalized chromosome sorting:
+        1. numeric chromosomes
+        2. X/Y/MT
+        3. scaffolds in natural order """
+    
+    c = chrom
+
+    # remove chr is present
+    if c.lower().startswith("chr"):     # normalize because can be: chr, Chr, CHR...
+        c=c[3:] # just gets the number
+    
+    c_upper = c.upper()     # change back to upper for X,Y,MT
+
+    # numeric chrom first
+    if c.isdigit():
+        return(0, int(c))
+    
+    # X,Y, MT next
+    non_num = {"X": 1, "Y": 2, "MT": 3}
+    if c_upper in non_num:
+        return(1, non_num[c_upper]) # return in order
+    
+    # scaffolds
+    return(2,c)
 
 if __name__ == "__main__":
     # print summary for qualtrics submission
@@ -192,9 +205,11 @@ if __name__ == "__main__":
     print(f"Number of unique reads: {unique_reads_count}")
     print(f"Number of wrong UMIs: {wrong_umi_count}")
     print(f"Number of removed duplicates: {removed_dupes_count}")
+    print() # blank space
 
+    print(f"{'Chrom': <10}{'Reads per chrom':<20}")     # the <10 means left align, 10 character column width
     for chrom in sorted(reads_per_chrom, key=chrom_sort_key):
-        print(f"{chrom}\t{reads_per_chrom[chrom]}")
+        print(f"{chrom:<10}\t{reads_per_chrom[chrom]:<20}")
     
         
 
